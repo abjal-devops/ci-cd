@@ -8,7 +8,8 @@ node {
         sh 'docker build -t abjal/test:v${BUILD_ID} .'
     }
     stage('push to docker hub') {
-          sh "docker login -u abjal -p"
+        input message: 'please enter dockerhub password', parameters: [credentials(credentialType: 'com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl', defaultValue: '', description: '', name: 'password', required: false)]
+          sh "docker login -u abjal -p $password"
       sh 'docker push abjal/test:v${BUILD_ID}'
     }
      // docker.withRegistry('https://registry.example.com', 'credentials-id') {
