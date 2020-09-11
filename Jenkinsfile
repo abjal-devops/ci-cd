@@ -2,7 +2,8 @@ node {
     stage('scm checkout'){
     }
     stage('build') {
-        sh 'mvn clean install'
+        home = tool name: 'maven', type: 'maven'
+        sh "$home/bin/mvn clean install"
     }
     stage('build docker image') {
         sh 'docker build -t abjal/test:v${BUILD_ID} .'
