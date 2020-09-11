@@ -1,5 +1,6 @@
 node {
     stage('scm checkout'){
+        git 'https://github.com/abjal-devops/ci-cd.git'
     }
     stage('build') {
         home = tool name: 'maven', type: 'maven'
