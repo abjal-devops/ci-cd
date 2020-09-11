@@ -13,6 +13,7 @@ node {
           sh "docker login -u abjal -p $password"
       sh 'docker push abjal/test:v${BUILD_ID}'
     }
+}
      // docker.withRegistry('https://registry.example.com', 'credentials-id') {
 
       //  def customImage = docker.build("my-image:${env.BUILD_ID}")
