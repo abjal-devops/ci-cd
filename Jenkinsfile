@@ -11,7 +11,7 @@ node {
     }
     stage('push to docker hub') {
         withCredentials([usernameColonPassword(credentialsId: '0bb80b87-e67d-4753-a65b-77e5bdaa967f', variable: 'password')]) {
-    sh "docker login -u abjal -p $password"
+    sh "docker login -u abjal -p $password" https://hub.docker.com/v2
         }       
       sh 'docker push abjal/test:v${BUILD_ID}'
     }
