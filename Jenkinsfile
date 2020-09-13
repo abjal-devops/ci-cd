@@ -30,7 +30,7 @@ pipeline {
         stage('deploy service on swarm') {
 		    steps {
                 script {
-                    withCredentials([sshUserPrivateKey(credentialsId: '7a46d593-b99e-4734-b881-73462b2c0d9a', keyFileVariable: 'key', passphraseVariable: '', usernameVariable: 'username')]) {
+                    withCredentials([sshUserPrivateKey(credentialsId: 'key', keyFileVariable: '', passphraseVariable: '', usernameVariable: '')]) {
                     withCredentials([usernamePassword(credentialsId: 'hub', passwordVariable: 'password', usernameVariable: 'username')]) {
                     sh "ssh -o StrictHostKeyChecking=no -i $key ec2-user@13.59.55.248 sudo docker login -u $username -p $password"
                     try {
