@@ -3,10 +3,11 @@ kind: Service
 metadata:
   name: my-service
 spec:
+  type: nodePort
   selector:
-    app: web-app
+    app: web-app1
   ports:
     - protocol: TCP
       port: 80
       targetPort: 8080
-  type: LoadBalancer
+      nodePort: 30007
