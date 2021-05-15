@@ -16,7 +16,14 @@
     c. shared control plane and node group sg - control plane and node group nodes to communicate
     b. cluster sg - 
  7. ekscli save eks config file under ./kube/config of user home directory, which allows to run kubectl commands
- 8.
+ 8. worker node will have access to ecr with iam role, so image can be pulled to node easily.
+ 9. jenkins to eks integration is done by  copying kube config file under jenkins home directory and installing kubectl command, 
+    and giving path of kubectl command in jenkins configure system under environemnt variable session.
+ 10. by default eks supports clasic load balancer, when we deploy a service a load balancer type.
+ 11. to provide external access to multiple services running inside eks cluster by ingres controller, find below link to enable it. 
+     becuase we can not allow for each service an load balancer.
+       https://aws.amazon.com/premiumsupport/knowledge-center/eks-access-kubernetes-services/
+ 12. ekscli created natgatway also - need to check on this.
     
 
    
