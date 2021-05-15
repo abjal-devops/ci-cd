@@ -11,9 +11,9 @@ rules:
         paths:
         - path: /login
           backend:
-                serviceName: service1
-                servicePort: 8080
+                serviceName: my-service
+                servicePort: 80
         - path: /cart
           backend:
-                serviceName: service2
-                servicePort: 8081
+                serviceName: my-service1
+                servicePort: 80
