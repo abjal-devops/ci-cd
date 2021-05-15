@@ -11,10 +11,10 @@
 4. eks cluster created with 2 public and 2 private subnets
 5. eks cluster gets created by cloud formation template in the backend.
 6. 4 security groups get created, 
-    a. control plane sg - these rules allows to make api reuqest to cluster
-    b. node group sg - unmanaged and managed node to communicate
-    c. shared control plane and node group sg - control plane and node group nodes to communicate
-    b. cluster sg - 
+    a. control plane sg - these rules allows to make api reuqest to cluster, 443
+    b. node group sg - workers node to communicate, worker nodes to communicate control plane , ports - 1025 - 65535, 443, 22
+    c. cluster shared node  sg - unmanaged, managed node to communicate, all nodes to communicate each
+    b. cluster sg - allow unmanged nodes to comunicate control plane
  7. ekscli save eks config file under ./kube/config of user home directory, which allows to run kubectl commands
  8. worker node will have access to ecr with iam role, so image can be pulled to node easily.
  9. jenkins to eks integration is done by  copying kube config file under jenkins home directory and installing kubectl command, 
@@ -25,6 +25,7 @@
        https://aws.amazon.com/premiumsupport/knowledge-center/eks-access-kubernetes-services/
  12. ekscli created natgatway also - need to check on this.
  13. it create all resorces with tag , so easily to identify the resources belog to a specific cluster.
+ 14. control plane iam role and node group iam role required. 
 
    
    
