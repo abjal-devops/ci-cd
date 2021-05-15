@@ -1,0 +1,13 @@
+docker build -t web-app-v$BUILD_NUMBER .
+docker tag web-app-v$BUILD_NUMBER 980005835410.dkr.ecr.us-east-1.amazonaws.com/test:v$BUILD_NUMBER
+docker images
+#docker login -u abjaldevops -p Abjal.aws@125
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 980005835410.dkr.ecr.us-east-1.amazonaws.com
+docker push 980005835410.dkr.ecr.us-east-1.amazonaws.com/test:v$BUILD_NUMBER
+#docker run -itd -p 80:8080 --name test web-app-v$BUILD_NUMBER
+#docker ps
+sed -i "s/build_no/v$BUILD_NUMBER/g" deployment.yml
+kubectl apply  -f deployment.yml
+kubectl apply -f service.yml
+kubectl get pods
+kubectl apply -f ingress.yml
