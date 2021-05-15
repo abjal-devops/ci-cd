@@ -2,8 +2,8 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: path-ingress
-annotations:
-  nginx.ingress.kubernetes.io/rewrite-target: /
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
     - host: hostname.mydomain.com
