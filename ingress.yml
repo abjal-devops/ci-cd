@@ -6,7 +6,7 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
-    - host: hostname.mydomain.com
+    - host: http://www.techlearn.website
       http:
         paths:
         - path: /login
