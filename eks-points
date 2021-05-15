@@ -24,7 +24,7 @@
      becuase we can not allow for each service an load balancer.
        https://aws.amazon.com/premiumsupport/knowledge-center/eks-access-kubernetes-services/
  12. ekscli created natgatway also - need to check on this.
-    
+ 13. it create all resorces with tag , so easily to identify the resources belog to a specific cluster.
 
    
    
