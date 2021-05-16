@@ -1,0 +1,284 @@
+doc ref: https://aws.amazon.com/premiumsupport/knowledge-center/eks-access-kubernetes-services/
+
+How do I provide external access to multiple Kubernetes services in my Amazon EKS cluster?
+Last updated: 2021-03-30
+
+I want to provide external access to multiple Kubernetes services in my Amazon Elastic Kubernetes Service (Amazon EKS) cluster.
+
+Short description
+You can use the NGINX Ingress Controller for Kubernetes to provide external access to multiple Kubernetes services in your Amazon EKS cluster.
+
+Note: The NGINX Ingress Controller can be more efficient and cost-effective than a load balancer. Also, you might need to reserve your load balancer for sending traffic to different microservices. The NGINX Ingress Controller is maintained primarily by NGINX. To check for issues with the NGINX Ingress Controller, see the list of issues on GitHub.
+
+Important: The Ingress Controller (from the Kubernetes website) isn't the same as the Ingress (from the Kubernetes website). The Ingress is a Kubernetes resource that exposes HTTP and HTTPS routes from outside the cluster to the services within the cluster. The Ingress Controller fulfills the Ingress (usually with a load balancer). You can't use Ingress without an Ingress Controller.
+
+Resolution
+The following resolution uses the nginxinc/kubernetes-ingress Ingress Controller from the NGINX GitHub website. The other Ingress Controller available for public use is the kubernetes/ingress-nginx from the Kubernetes GitHub site. For more information, see Differences Between nginxinc/kubernetes-ingress and kubernetes/ingress-nginx Ingress Controllers on the NGINX website.
+
+Deploy the NGINX Ingress Controller for Kubernetes
+1.    Download the NGINX Ingress Controller for Kubernetes:
+
+git clone https://github.com/nginxinc/kubernetes-ingress.git
+2.    Choose the directory for deploying the Ingress Controller:
+
+cd kubernetes-ingress/deployments/
+Note: All the commands in the following steps are run from the deployments directory.
+
+3.    Verify that you're using the stable release of the NGINX Ingress Controller and not the edge release (experimental as of March 2021):
+
+git checkout v1.10.1
+Note: For more information on NGINX Ingress Controller releases, see NGINX Ingress Controller Releases on GitHub.
+
+4.    Create a dedicated namespace, service account, and TLS certificates (with a key) for the default server:
+
+kubectl apply -f common/ns-and-sa.yaml
+kubectl apply -f common/default-server-secret.yaml
+Note: The default server returns a "Not Found" page with a 404 status code for all requests for domains where no Ingress rules are defined. You can use the self-signed certificate and key that are generated for testing purposes. It's a best practice to use your own certificate and key for production environments.
+
+5.    Create a ConfigMap for customizing your NGINX configuration:
+
+kubectl apply -f common/nginx-config.yaml
+Note: For example configurations, see ConfigMap and Annotations on the NGINX GitHub site.
+
+6.    Configure role-based access control (RBAC), create a ClusterRole, and then bind the ClusterRole to the service account from step 3. For example:
+
+kubectl apply -f rbac/rbac.yaml
+Note: The ClusterRole gives the Ingress Controller permission to interact with your Amazon EKS cluster.
+
+7.    If your Kubernetes cluster version is greater than or equal to 1.18, then create an NGINX Ingress class:
+
+kubectl apply -f common/ingress-class.yaml
+8.    Deploy the Ingress Controller:
+
+kubectl apply -f deployment/nginx-ingress.yaml
+kubectl get pods --namespace=nginx-ingress
+Note: You can deploy an Ingress Controller with the Deployment or DaemonSet option. The Deployment option allows you to dynamically change the number of Ingress controller replicas. The DaemonSet option allows you to deploy the Ingress Controller on every node or subset of nodes. The preceding step 7 uses the Deployment option.
+
+Output example:
+
+NAME                            READY   STATUS    RESTARTS   AGE
+nginx-ingress-fb4f4b44c-xmq6z   1/1     Running   0          12s
+Your Ingress Controller can now accept requests from Ingress objects.
+
+Access the Ingress Controller and run your application
+For a Deployment ingress-controller, you can use a service object with type NodePort or LoadBalancer. The following steps use the LoadBalancer type.
+
+1.    Apply your configuration:
+
+kubectl apply -f service/loadbalancer-aws-elb.yaml
+
+kubectl get svc --namespace=nginx-ingress
+Output example:
+
+NAME          TYPE         EXTERNAL-IP                                      PORT(S)
+nginx-ingress LoadBalancer aaa71bxxxxx-11xxxxx10.us-east-1.elb.amazonaws.com 80:32462/TCP,443:32226/TCP
+Note: Amazon EKS allocates a Classic Load Balancer in TCP mode with the PROXY protocol enabled to pass the client's information (the IP address and port). You must pass this proxy information to the Ingress Controller.
+
+2.    Configure NGINX to use the PROXY protocol so that you can pass proxy information to the Ingress Controller, and add the following keys to the nginx-config.yaml file from step 1. For example:
+
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: nginx-config
+  namespace: nginx-ingress
+data:
+  proxy-protocol: "True"
+  real-ip-header: "proxy_protocol"
+  set-real-ip-from: "0.0.0.0/0"
+Note: The proxy information is passed to the Ingress Controller through the ConfigMap that you created earlier.
+
+3.    Update the ConfigMap:
+
+kubectl apply -f common/nginx-config.yaml
+4.    Set up your deployments or microservices (for example, hostname-app and apache-app). See the following examples.
+
+Note: This step assumes that you're running two microservices (for demo purposes). The microservices are exposed internally with Kubernetes as the default type.
+
+Example of a hostname-app-svc.yaml file for hostname-app:
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hostname-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hostname-app
+  template:
+    metadata:
+      labels:
+        app: hostname-app
+    spec:
+      containers:
+      - name: hostname-app
+        image: k8s.gcr.io/serve_hostname:1.1
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hostname-svc
+spec:
+  ports:
+  - port: 80
+    targetPort: 9376
+    protocol: TCP
+  selector:
+    app: hostname-app
+Example of an apache-app-svc.yaml file for apache-app:
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apache-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: apache-app
+  template:
+    metadata:
+      labels:
+        app: apache-app
+    spec:
+      containers:
+      - name: apache-app
+        image: httpd:latest
+        ports:
+        - containerPort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apache-svc
+  labels:
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+  selector:
+    app: apache-app
+Apply your configurations:
+
+kubectl apply -f hostname-app-svc.yaml
+kubectl apply -f apache-app-svc.yaml
+5.    Implement Ingress so that it interfaces with your services using a single load balancer provided by Ingress Controller. See the following micro-ingress.yaml example:
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: micro-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: hostname.mydomain.com
+      http:
+        paths:
+          - backend:
+              serviceName: hostname-svc
+              servicePort: 80
+    - host: apache.mydomain.com
+      http:
+        paths:
+          - backend:
+              serviceName: apache-svc
+              servicePort: 80
+Note: For more information, see Name based virtual hosting on the Kubernetes website.
+
+6.    Apply your configuration:
+
+kubectl apply -f micro-ingress.yaml
+Note: This Ingress resource defines rules that redirect anything for hostname.mydomain.com to hostname-svc, and anything for apache.mydomain.com to apache-svc. Any request that doesn't match the rule returns a 404 "Not Found" error message.
+
+If you describe the Ingress, you receive a message similar to the following:
+
+kubectl describe ingress micro-ingress                       
+
+Name:             micro-ingress
+Namespace:        default
+Address:
+Default backend:  default-http-backend:80 (<error: endpoints "default-http-backend" not found>)
+Rules:
+  Host                   Path  Backends
+  ----                   ----  --------
+  hostname.mydomain.com
+                            hostname-svc:80 (192.168.47.163:9376,192.168.70.76:9376)
+  apache.mydomain.com
+                            apache-svc:80 (192.168.37.44:80,192.168.84.218:80)
+Annotations:             kubernetes.io/ingress.class: nginx
+Events:
+  Type    Reason          Age   From                      Message
+  ----    ------          ----  ----                      -------
+  Normal  AddedOrUpdated  23s   nginx-ingress-controller  Configuration for default/micro-ingress was added or updated
+Test the NGINX Ingress Controller
+1.    Access the DNS URL of the load balancer that you retrieved earlier from command line:
+
+curl -I http://aaa71bxxxxx-11xxxxx10.us-east-1.elb.amazonaws.com/
+Note: The load balancer endpoint is from the preceding Access the Ingress Controller and run your application section.
+
+Output example:
+
+HTTP/1.1 404 Not Found
+Server: nginx/1.17.5
+Date: Mon, 25 Nov 2019 20:50:58 GMT
+Content-Type: text/html
+Content-Length: 153
+Connection: keep-alive
+Note: The default server returns a "Not Found" page with a 404 status code for all the requests for domains where no Ingress rules are defined. The Ingress Controller, based on the defined rules, doesn't divert traffic to the specified backend service, unless the request matches with the configuration. Because the host field is configured for the Ingress object, you must supply the Host header of the request with the same hostname.
+
+2.    Add the Host header to the request.
+
+This is a request based on the first configured domain:
+
+curl -I -H "Host: hostname.mydomain.com" http://aaa71bxxxxx-11xxxxx10.us-east-1.elb.amazonaws.com/
+Output example:
+
+HTTP/1.1 200 OK
+Server: nginx/1.19.8
+Date: Fri, 26 Mar 2021 15:49:43 GMT
+Content-Type: text/plain; charset=utf-8
+Content-Length: 29
+Connection: keep-alive
+This is a request based on the second configured domain:
+
+curl -I -H "Host: apache.mydomain.com" http://aaa71bxxxxx-11xxxxx10.us-east-1.elb.amazonaws.com/
+Output example:
+
+HTTP/1.1 200 OK
+Server: nginx/1.19.8
+Date: Fri, 26 Mar 2021 15:50:27 GMT
+Content-Type: text/html
+Content-Length: 45
+Connection: keep-alive
+Last-Modified: Mon, 11 Jun 2007 18:53:14 GMT
+ETag: "2d-432a5e4a73a80"
+Accept-Ranges: bytes
+After you add the Host header, the Ingress Controller can redirect traffic to the backend configured service as it matches the configuration defined in Ingress.
+
+To keep the same domain name, but divert the traffic based on the path accessed, you must add path-based routing with Ingress. For example:
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+name: path-ingress
+annotations:
+  nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+rules:
+- host: hostname.mydomain.com
+  http:
+        paths:
+        - path: /login
+          backend:
+                serviceName: service1
+                servicePort: 4200
+        - path: /cart
+          backend:
+                serviceName: service2
+                servicePort: 8080
+The preceding example returns only the 200 response when requests have hostname.mydomain.com as the host header. The requests are accessed on either the /login or /cart paths. For all other requests, 404 responses are returned.
