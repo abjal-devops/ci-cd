@@ -16,6 +16,7 @@ spec:
     spec:
       containers:
       - name: web-app
-        image: 980005835410.dkr.ecr.us-east-1.amazonaws.com/test:build_no
+        #image: 980005835410.dkr.ecr.us-east-1.amazonaws.com/test:build_no
+        image: abjaldevops/test:$BUILD_NUMBER
         ports:
         - containerPort: 8080
