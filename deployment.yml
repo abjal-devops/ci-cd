@@ -20,3 +20,5 @@ spec:
         image: abjaldevops/test:$BUILD_NUMBER
         ports:
         - containerPort: 8080
+      imagePullSecrets:
+      - name: dockerhubsecret
